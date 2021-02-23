@@ -9,7 +9,7 @@ from src.types.reward_chain_block import (
 )
 from src.types.sized_bytes import bytes32
 from src.types.sub_epoch_summary import SubEpochSummary
-from src.types.vdf import VDFInfo, VDFProof, FieldVDF
+from src.types.vdf import VDFInfo, VDFProof
 from src.util.ints import uint8, uint32, uint64, uint128
 from src.util.streamable import streamable, Streamable
 
