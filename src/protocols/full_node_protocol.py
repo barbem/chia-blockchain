@@ -6,7 +6,7 @@ from src.types.full_block import FullBlock
 from src.types.spend_bundle import SpendBundle
 from src.types.unfinished_block import UnfinishedBlock
 from src.types.sized_bytes import bytes32
-from src.types.vdf import VDFInfo, VDFProof, FieldVDF
+from src.types.vdf import VDFInfo, VDFProof
 from src.types.weight_proof import WeightProof
 from src.util.ints import uint8, uint32, uint64, uint128
 from src.types.peer_info import TimestampedPeerInfo
@@ -164,7 +164,7 @@ class RequestMempoolTransactions(Streamable):
 @streamable
 class NewCompactVDF(Streamable):
     height: uint32
-    field_vdf: FieldVDF
+    field_vdf: uint8
     vdf_info: VDFInfo
 
 
@@ -172,7 +172,7 @@ class NewCompactVDF(Streamable):
 @streamable
 class RequestCompactVDF(Streamable):
     height: uint32
-    field_vdf: FieldVDF
+    field_vdf: uint8
     vdf_info: VDFInfo
 
 
@@ -180,7 +180,7 @@ class RequestCompactVDF(Streamable):
 @streamable
 class RespondCompactVDF(Streamable):
     height: uint32
-    field_vdf: FieldVDF
+    field_vdf: uint8
     vdf_info: VDFInfo
     vdf_proof: VDFProof
 
