@@ -4,7 +4,7 @@
 ;
 ; A_k : the amount contributed as available for spending by input I_k
 ; I_k : the input coins, I_k = (parent_k, puzzle_hash_k, A_k) where A_k is an input "amount".
-; L_k : the lock coin created by I_k and consumed by I_{k-1}
+; L_k : the announcement broadcast by I_k and expected by I_{k-1}
 ; O_k : the amount spent by I_k
 ; D_k = the "delta" O_k - A_k contribution of coin I_k, ie. how much debt this input accumulates
 ; S_k : the "running subtotal" of deltas (see below)
@@ -16,20 +16,20 @@
 ;
 ; Three output conditions are prepended to the list of conditions for each I_k:
 ;  (ASSERT_MY_ID I_k) to ensure that the passed in value for I_k is correct
-;  (CREATE_COIN L_k 0) to create the lock coin
-;  (ASSERT_COIN_CONSUMED L_{k+1}) to consume the next coin's lock
+;  (CREATE_ANNOUNCEMENT L_k) to create this coin's announcement
+;  (ASSERT_ANNOUNCEMENT L_{k+1}) to ensure the next coin created the expected announcement
 ;
 ; For each k, define the "subtotal at k" S_k as follows:
 ;  S_1 = 0 (it could actually be any value, but 0 is an obvious nice way to start)
 ;  S_{k+1} = S_k + D_k = S_k + O_k - A_k
 ;
-; Each input I_k creates a lock output L_k that has commitments to the following values:
+; Each input I_k creates an announcement L_k that has commitments to the following values:
 ;  - O_k (calculated from the inner puzzle & inner solution)
 ;  - I_k (passed in by the solution, and verified with ASSERT_MY_ID)
 ;  - I_{k+1} where k+1 wraps around to 1 if k = n (passed in by the solution)
 ;  - S_k (passed in by the solution)
 ;
-; We generate a (CREATE_COIN L_k 0) condition, a lock coin with 0 value.
+; We generate an announcement via (CREATE_ANNOUNCEMENT L_k 0)
 ;
 ; The solution will also pass in O_{k+1} and I_{k+2}.
 ; With this, and knowing S_k, O_k and A_k, we can calculate L_{k+1} and
@@ -39,7 +39,7 @@
 ;
 ; Proof:
 ;   Consider n, k, I_k values, O_k values, S_k and A_k as above.
-;   For the (CREATE_COIN L_k) and (ASSERT_COIN_CONSUMED L_{k+1}) to match,
+;   For the (CREATE_ANNOUNCEMENT L_k) and (ASSERT_ANNOUNCEMENT L_{k+1}) to match,
 ;   we see that I_k can ensure that is has the correct values for many things,
 ;   including O_{k+1}, A_{k+1}.
 ;
@@ -69,10 +69,10 @@
       genesis-coin-checker    ;; curried into puzzle
       inner-puzzle            ;; curried into puzzle
       inner-puzzle-solution   ;; if invalid, inner-puzzle will fail
-      prev-coin-bundle        ;; used in this coin's lock coin, prev-coin ASSERT_CONSUMED will fail if wrong
+      prev-coin-bundle        ;; used in this coin's announcement, prev-coin ASSERT_ANNOUNCEMENT will fail if wrong
       my-coin-bundle          ;; verified with ASSERT_MY_COIN_ID
-      next-coin-bundle        ;; used to generate ASSERT_CONSUMED
-      left-subtotal           ;; included in lock, prev-coin ASSERT_CONSUMED will fail if wrong
+      next-coin-bundle        ;; used to generate ASSERT_ANNOUNCEMENT
+      left-subtotal           ;; included in announcement, prev-coin ASSERT_ANNOUNCEMENT will fail if wrong
     )
 
      ;;;;; start library code
@@ -181,30 +181,30 @@
        (f (r (r coin)))
      )
 
-     ;; calculate the coin id of a lock coin
-     (defun-inline calculate-next-lock-coin-id (my-coin-info subtotal next-coin-info)
-       (sha256 (coin-id-for-coin next-coin-info) (puzzle-hash-for-lock my-coin-info subtotal))
+     ;; calculate the coin id of an announcement
+     (defun-inline calculate-next-annoucement-id (my-coin-info subtotal next-coin-info)
+       (sha256 (coin-id-for-coin next-coin-info) (puzzle-hash-for-announcement my-coin-info subtotal))
      )
 
-     ;; create the `ASSERT_COIN_CONSUMED` condition that ensures the next coin's lock is spent
-     (defun-inline create-assert-next-lock-consumed-condition (my-coin-info right-subtotal next-coin-info)
+     ;; create the `ASSERT_ANNOUNCEMENT` condition that ensures the next coin's announcement is correct
+     (defun-inline create-assert-next-announcement-condition (my-coin-info right-subtotal next-coin-info)
        (list ASSERT_ANNOUNCEMENT
-             (calculate-next-lock-coin-id my-coin-info
-                                          right-subtotal
-                                          next-coin-info
+             (calculate-next-annoucement-id my-coin-info
+                                            right-subtotal
+                                            next-coin-info
              )
        )
      )
 
-     ;; calculate the puzzle hash for a lock coin
-     (defun-inline puzzle-hash-for-lock (prev-coin-info left-subtotal)
+     ;; calculate the puzzle hash for an announcement
+     (defun-inline puzzle-hash-for-announcement (prev-coin-info left-subtotal)
        (sha256tree1 prev-coin-info left-subtotal)
      )
 
      ;; here we commit to O_k, I_{k+1} and S_k
-     (defun-inline create-lock-coin-condition (prev-coin-info subtotal)
+     (defun-inline create-announcement-condition (prev-coin-info subtotal)
        (list CREATE_ANNOUNCEMENT
-         (puzzle-hash-for-lock prev-coin-info subtotal)
+         (puzzle-hash-for-announcement prev-coin-info subtotal)
        )
       )
 
@@ -236,9 +236,9 @@
      )
 
      ;; add three conditions to the list of morphed conditions:
-     ;; CREATE_COIN for the lock coin
+     ;; CREATE_ANNOUNCEMENT for the announcement
      ;; ASSERT_MY_COIN_ID for `my-coin-info`
-     ;; ASSERT_COIN_CONSUMED for the next coin's lock coin
+     ;; ASSERT_ANNOUNCEMENT for the next coin's announcement
      (defun-inline generate-final-output-conditions
        (
          left-subtotal
@@ -249,8 +249,8 @@
          next-coin-info
        )
        (c (create-assert-my-id my-coin-info)
-         (c (create-lock-coin-condition prev-coin-info left-subtotal)
-           (c (create-assert-next-lock-consumed-condition my-coin-info right-subtotal next-coin-info)
+         (c (create-announcement-condition prev-coin-info left-subtotal)
+           (c (create-assert-next-announcement-condition my-coin-info right-subtotal next-coin-info)
              morphed-conditions)
          )
        )
