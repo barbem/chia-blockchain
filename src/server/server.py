@@ -448,6 +448,8 @@ class ChiaServer:
                         try:
                             result = await coroutine
                             return result
+                        except asyncio.CancelledError:
+                            pass
                         except Exception as e:
                             tb = traceback.format_exc()
                             connection.log.error(f"Exception: {e}, {connection.get_peer_info()}. {tb}")
