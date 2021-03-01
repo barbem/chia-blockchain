@@ -14,6 +14,12 @@ network_overrides: &network_overrides
     NETWORK: 4
     GENESIS_PRE_FARM_POOL_PUZZLE_HASH: "bc4fd6c394fe90c6097afbfa6ab5927743e2210ecf689dad477be8eb408745d5"
     GENESIS_PRE_FARM_FARMER_PUZZLE_HASH: "4ad98e66a019f11b60a8279514d13105b65588865e2a8e794b5b73d5646174f6"
+  testnet5:
+    STATUS_URL: testnet5.chia.net/status
+    CHIA_ALERTS_PUBKEY: null
+    GENESIS_CHALLENGE: null
+    GENESIS_PRE_FARM_FARMER_PUZZLE_HASH: null
+    GENESIS_PRE_FARM_POOL_PUZZLE_HASH: null
 
 selected_network: &selected_network "testnet4"
 
